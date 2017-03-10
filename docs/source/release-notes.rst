@@ -21,6 +21,11 @@ There is a new tool "DemoBench", which makes it easy to configure and launch loc
  #. Another button launches a database viewer in the system browser.
  #. The configurations of all running nodes can be saved into a single ``.profile`` file that can be reloaded later.
 
+We have continued work on confidential identities, introducing code to enable the Java standard libraries to work with
+composite key signatures. This will form the underlying basis of future work to standardise the public key and signature
+formats to enable interoperability with other systems, as well as enabling the use of composite signatures on X.509
+certificates to prove association between transaction keys and identity keys.
+
 Milestone 9
 -----------
 
