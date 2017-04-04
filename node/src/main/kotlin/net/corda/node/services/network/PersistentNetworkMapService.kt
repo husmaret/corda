@@ -4,6 +4,7 @@ import net.corda.core.ThreadBox
 import net.corda.core.crypto.Party
 import net.corda.core.messaging.SingleMessageRecipient
 import net.corda.node.services.api.ServiceHubInternal
+import net.corda.node.services.config.NetworkParameters
 import net.corda.node.utilities.*
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.InsertStatement
@@ -17,7 +18,9 @@ import java.util.Collections.synchronizedMap
  * This class needs database transactions to be in-flight during method calls and init, otherwise it will throw
  * exceptions.
  */
-class PersistentNetworkMapService(services: ServiceHubInternal) : AbstractNetworkMapService(services) {
+class PersistentNetworkMapService(services: ServiceHubInternal, networkParameters: NetworkParameters)
+    : AbstractNetworkMapService(services, networkParameters) {
+
     private object Table : JDBCHashedTable("${NODE_DATABASE_PREFIX}network_map_nodes") {
         val nodeParty = party("node_party_name", "node_party_key")
         val registrationInfo = blob("node_registration_info")

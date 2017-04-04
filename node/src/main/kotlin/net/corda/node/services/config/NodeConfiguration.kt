@@ -2,7 +2,7 @@ package net.corda.node.services.config
 
 import com.google.common.net.HostAndPort
 import net.corda.core.div
-import net.corda.core.node.NodeVersionInfo
+import net.corda.core.node.VersionInfo
 import net.corda.core.node.services.ServiceInfo
 import net.corda.node.internal.NetworkMapInfo
 import net.corda.node.internal.Node
@@ -22,6 +22,7 @@ interface NodeConfiguration : SSLConfiguration {
     override val certificatesDirectory: Path get() = baseDirectory / "certificates"
     val myLegalName: String
     val networkMapService: NetworkMapInfo?
+    val networkParameters: NetworkParameters?
     val nearestCity: String
     val emailAddress: String
     val exportJMXto: String
@@ -47,6 +48,7 @@ data class FullNodeConfiguration(
         override val dataSourceProperties: Properties,
         override val certificateSigningService: URL,
         override val networkMapService: NetworkMapInfo?,
+        override val networkParameters: NetworkParameters?,
         override val rpcUsers: List<User>,
         override val verifierType: VerifierType,
         val useHTTPS: Boolean,
@@ -72,22 +74,27 @@ data class FullNodeConfiguration(
     init {
         // This is a sanity feature do not remove.
         require(!useTestClock || devMode) { "Cannot use test clock outside of dev mode" }
+        require(networkMapService != null && networkParameters == null || networkMapService == null && networkParameters != null) {
+            "networkMapService and networkParameters are mutually exclusive"
+        }
         // TODO Move this to ArtemisMessagingServer
         rpcUsers.forEach {
             require(it.username.matches("\\w+".toRegex())) { "Username ${it.username} contains invalid characters" }
         }
     }
 
-    fun createNode(nodeVersionInfo: NodeVersionInfo): Node {
+    fun createNode(versionInfo: VersionInfo): Node {
         val advertisedServices = extraAdvertisedServiceIds
                 .filter(String::isNotBlank)
                 .map { ServiceInfo.parse(it) }
                 .toMutableSet()
         if (networkMapService == null) advertisedServices += ServiceInfo(NetworkMapService.type)
 
-        return Node(this, advertisedServices, nodeVersionInfo, if (useTestClock) TestClock() else NodeClock())
+        return Node(this, advertisedServices, versionInfo, if (useTestClock) TestClock() else NodeClock())
     }
 }
+
+data class NetworkParameters(val minimumPlatformVersion: Int)
 
 enum class VerifierType {
     InMemory,

@@ -20,6 +20,7 @@ import net.corda.core.utilities.loggerFor
 import net.corda.flows.ServiceRequestMessage
 import net.corda.node.services.api.AbstractNodeService
 import net.corda.node.services.api.ServiceHubInternal
+import net.corda.node.services.config.NetworkParameters
 import net.corda.node.services.network.NetworkMapService.*
 import net.corda.node.services.network.NetworkMapService.Companion.FETCH_TOPIC
 import net.corda.node.services.network.NetworkMapService.Companion.PUSH_ACK_TOPIC
@@ -109,7 +110,8 @@ interface NetworkMapService {
 }
 
 @ThreadSafe
-class InMemoryNetworkMapService(services: ServiceHubInternal) : AbstractNetworkMapService(services) {
+class InMemoryNetworkMapService(services: ServiceHubInternal, networkParameters: NetworkParameters)
+    : AbstractNetworkMapService(services, networkParameters) {
 
     override val nodeRegistrations: MutableMap<Party, NodeRegistrationInfo> = ConcurrentHashMap()
     override val subscribers = ThreadBox(mutableMapOf<SingleMessageRecipient, LastAcknowledgeInfo>())
@@ -126,7 +128,8 @@ class InMemoryNetworkMapService(services: ServiceHubInternal) : AbstractNetworkM
  * subscriber clean up and is simpler to persist than the previous implementation based on a set of missing messages acks.
  */
 @ThreadSafe
-abstract class AbstractNetworkMapService(services: ServiceHubInternal) : NetworkMapService, AbstractNodeService(services) {
+abstract class AbstractNetworkMapService(services: ServiceHubInternal,
+                                         val networkParameters: NetworkParameters) : NetworkMapService, AbstractNodeService(services) {
     companion object {
         /**
          * Maximum credible size for a registration request. Generally requests are around 500-600 bytes, so this gives a
@@ -219,21 +222,27 @@ abstract class AbstractNetworkMapService(services: ServiceHubInternal) : Network
     }
 
     private fun processRegistrationRequest(request: RegistrationRequest): RegistrationResponse {
-        if (request.wireReg.raw.size > MAX_SIZE_REGISTRATION_REQUEST_BYTES) return RegistrationResponse("Request is too big")
+        if (request.wireReg.raw.size > MAX_SIZE_REGISTRATION_REQUEST_BYTES) {
+            return RegistrationResponse("Request is too big")
+        }
 
         val change = try {
             request.wireReg.verified()
-        } catch(e: SignatureException) {
+        } catch (e: SignatureException) {
             return RegistrationResponse("Invalid signature on request")
         }
 
         val node = change.node
 
+        if (node.platformVersion < networkParameters.minimumPlatformVersion) {
+            return RegistrationResponse("Minimum platform version requirement not met: ${networkParameters.minimumPlatformVersion}")
+        }
+
         // Update the current value atomically, so that if multiple updates come
         // in on different threads, there is no risk of a race condition while checking
         // sequence numbers.
         val registrationInfo = try {
-            nodeRegistrations.compute(node.legalIdentity) { _: Party, existing: NodeRegistrationInfo? ->
+            nodeRegistrations.compute(node.legalIdentity) { _, existing: NodeRegistrationInfo? ->
                 require(!((existing == null || existing.reg.type == REMOVE) && change.type == REMOVE)) {
                     "Attempting to de-register unknown node"
                 }

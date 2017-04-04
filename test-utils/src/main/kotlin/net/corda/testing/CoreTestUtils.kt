@@ -8,9 +8,8 @@ import com.google.common.util.concurrent.ListenableFuture
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.*
 import net.corda.core.flows.FlowLogic
-import net.corda.core.node.NodeVersionInfo
 import net.corda.core.node.ServiceHub
-import net.corda.core.node.Version
+import net.corda.core.node.VersionInfo
 import net.corda.core.serialization.OpaqueBytes
 import net.corda.core.toFuture
 import net.corda.core.transactions.TransactionBuilder
@@ -83,8 +82,7 @@ val ALL_TEST_KEYS: List<KeyPair> get() = listOf(MEGA_CORP_KEY, MINI_CORP_KEY, AL
 
 val MOCK_IDENTITY_SERVICE: MockIdentityService get() = MockIdentityService(listOf(MEGA_CORP, MINI_CORP, DUMMY_NOTARY))
 
-val MOCK_VERSION = Version(0, 0, 0, false)
-val MOCK_NODE_VERSION_INFO = NodeVersionInfo(MOCK_VERSION, "Mock revision", "Mock Vendor")
+val MOCK_VERSION_INFO = VersionInfo(0, "Mock release", "Mock revision", "Mock Vendor")
 
 fun generateStateRef() = StateRef(SecureHash.randomSHA256(), 0)
 
@@ -156,6 +154,7 @@ data class TestNodeConfiguration(
         override val baseDirectory: Path,
         override val myLegalName: String,
         override val networkMapService: NetworkMapInfo?,
+        override val networkParameters: NetworkParameters? = null,
         override val keyStorePassword: String = "cordacadevpass",
         override val trustStorePassword: String = "trustpass",
         override val rpcUsers: List<User> = emptyList(),
@@ -166,13 +165,15 @@ data class TestNodeConfiguration(
         override val devMode: Boolean = true,
         override val certificateSigningService: URL = URL("http://localhost"),
         override val certificateChainCheckPolicies: List<CertChainPolicyConfig> = emptyList(),
-        override val verifierType: VerifierType = VerifierType.InMemory) : NodeConfiguration
+        override val verifierType: VerifierType = VerifierType.InMemory) : NodeConfiguration {
+}
 
 fun testConfiguration(baseDirectory: Path, legalName: String, basePort: Int): FullNodeConfiguration {
     return FullNodeConfiguration(
             basedir = baseDirectory,
             myLegalName = legalName,
             networkMapService = null,
+            networkParameters = NetworkParameters(0),
             nearestCity = "Null Island",
             emailAddress = "",
             keyStorePassword = "cordacadevpass",
