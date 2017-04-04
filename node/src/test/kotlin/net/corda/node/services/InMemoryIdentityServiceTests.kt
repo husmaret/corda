@@ -20,6 +20,7 @@ import java.io.OutputStream
 import java.math.BigInteger
 import java.security.KeyPair
 import java.security.KeyStore
+import java.security.Security
 import java.security.cert.*
 import java.util.*
 import javax.security.auth.Subject
@@ -73,6 +74,7 @@ class InMemoryIdentityServiceTests {
 
     @Test
     fun `assert anonymous key owned by identity`() {
+        Security.addProvider(CompositeProvider())
         val caName = X500Name("cn=Node A")
         val service = InMemoryIdentityService()
         val identityKey = generateKeyPair()

@@ -48,9 +48,6 @@ class CompositeKey private constructor (val threshold: Int,
     }
 
     companion object {
-        // UUID-based OID
-        // TODO: Register for an OID space and issue our own shorter OID
-        val ALGORITHM_IDENTIFIER = AlgorithmIdentifier(ASN1ObjectIdentifier("2.25.30086077608615255153862931087626791003"))
         // TODO: Get the design standardised and from there define a recognised name
         val ALGORITHM = "X-Corda-CompositeKey"
         // TODO: We should be using a well defined format.
