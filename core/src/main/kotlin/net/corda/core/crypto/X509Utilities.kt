@@ -94,7 +94,7 @@ object X509Utilities {
     /**
      * Encode provided public key in correct format for inclusion in certificate issuer/subject fields
      */
-    private fun createSubjectKeyIdentifier(key: Key): SubjectKeyIdentifier {
+    fun createSubjectKeyIdentifier(key: Key): SubjectKeyIdentifier {
         val info = SubjectPublicKeyInfo.getInstance(key.encoded)
         return BcX509ExtensionUtils().createSubjectKeyIdentifier(info)
     }

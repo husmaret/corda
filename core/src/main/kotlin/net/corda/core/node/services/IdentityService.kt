@@ -3,8 +3,8 @@ package net.corda.core.node.services
 import net.corda.core.contracts.PartyAndReference
 import net.corda.core.crypto.AnonymousParty
 import net.corda.core.crypto.Party
-import org.bouncycastle.cert.path.CertPath
 import java.security.PublicKey
+import java.security.cert.CertPath
 
 /**
  * An identity service maintains an bidirectional map of [Party]s to their associated public keys and thus supports
