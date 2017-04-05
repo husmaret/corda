@@ -266,12 +266,19 @@ object X509Utilities {
      * @return A data class is returned containing the new root CA Cert and its [KeyPair] for signing downstream certificates.
      * Note the generated certificate tree is capped at max depth of 2 to be in line with commercially available certificates
      */
-    fun createSelfSignedCACert(myLegalName: String): CACertAndKey {
+    fun createSelfSignedCACert(domain: String): CACertAndKey = createSelfSignedCACert(getDevX509Name(domain))
+
+    /**
+     * Create a de novo root self-signed X509 v3 CA cert and [KeyPair].
+     * @param subject the subject and issuer of the certificate
+     * @return A data class is returned containing the new root CA Cert and its [KeyPair] for signing downstream certificates.
+     * Note the generated certificate tree is capped at max depth of 2 to be in line with commercially available certificates
+     */
+    fun createSelfSignedCACert(subject: X500Name): CACertAndKey {
         val keyPair = generateECDSAKeyPairForSSL()
 
-        val issuer = getDevX509Name(myLegalName)
+        val issuer = subject
         val serial = BigInteger.valueOf(random63BitValue())
-        val subject = issuer
         val pubKey = keyPair.public
 
         // Ten year certificate validity
@@ -302,6 +309,7 @@ object X509Utilities {
         cert.verify(pubKey)
 
         return CACertAndKey(cert, keyPair)
+
     }
 
     /**
@@ -312,12 +320,22 @@ object X509Utilities {
      * Note the generated certificate tree is capped at max depth of 1 below this to be in line with commercially available certificates
      */
     fun createIntermediateCert(domain: String,
+                               certificateAuthority: CACertAndKey): CACertAndKey = createIntermediateCert(getDevX509Name(domain), certificateAuthority)
+
+
+    /**
+     * Create a de novo root intermediate X509 v3 CA cert and KeyPair.
+     * @param domain The Common (CN) field of the cert Subject will be populated with the domain string
+     * @param certificateAuthority The Public certificate and KeyPair of the root CA certificate above this used to sign it
+     * @return A data class is returned containing the new intermediate CA Cert and its KeyPair for signing downstream certificates.
+     * Note the generated certificate tree is capped at max depth of 1 below this to be in line with commercially available certificates
+     */
+    fun createIntermediateCert(subject: X500Name,
                                certificateAuthority: CACertAndKey): CACertAndKey {
         val keyPair = generateECDSAKeyPairForSSL()
 
-        val issuer = X509CertificateHolder(certificateAuthority.certificate.encoded).subject
+        val issuer = X500Name(certificateAuthority.certificate.issuerDN.name)
         val serial = BigInteger.valueOf(random63BitValue())
-        val subject = getDevX509Name(domain)
         val pubKey = keyPair.public
 
         // Ten year certificate validity
