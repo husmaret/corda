@@ -3,15 +3,19 @@ package net.corda.node.services
 import net.corda.core.crypto.*
 import net.corda.core.serialization.serialize
 import net.corda.node.services.identity.InMemoryIdentityService
-import net.corda.testing.*
+import net.corda.testing.ALICE
+import net.corda.testing.ALICE_PUBKEY
+import net.corda.testing.BOB
+import net.corda.testing.BOB_PUBKEY
 import net.i2p.crypto.eddsa.EdDSAEngine
-import org.bouncycastle.asn1.ASN1Encodable
+import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.asn1.x509.X509Extensions
 import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.X509ExtensionUtils
 import org.bouncycastle.cert.X509v3CertificateBuilder
-import org.bouncycastle.cert.jcajce.JcaCertStoreBuilder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.operator.ContentSigner
 import org.junit.Test
@@ -19,11 +23,12 @@ import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.math.BigInteger
 import java.security.KeyPair
-import java.security.KeyStore
+import java.security.PublicKey
 import java.security.Security
-import java.security.cert.*
+import java.security.cert.CertPath
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Extension
 import java.util.*
-import javax.security.auth.Subject
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
@@ -31,7 +36,6 @@ import kotlin.test.assertNull
  * Tests for the in memory identity service.
  */
 class InMemoryIdentityServiceTests {
-
     @Test
     fun `get all identities`() {
         val service = InMemoryIdentityService()
@@ -83,10 +87,10 @@ class InMemoryIdentityServiceTests {
         val serial = BigInteger.ONE
         val notBefore = Date()
         val notAfter = Date(notBefore.getTime() + 24 * 60 * 60 * 1000L)
-        val identityCertificate = buildCertificate(identityKey, issuer, notAfter, notBefore, serial, issuer)
+        val identityCertificate = buildCertificate(identityKey, identity.owningKey, issuer, notAfter, notBefore, serial, issuer)
 
         val txIdentity = AnonymousParty(generateKeyPair().public)
-        val txCertificate = buildCertificate(identityKey, issuer, notAfter, notBefore, serial, caName)
+        val txCertificate = buildCertificate(identityKey, identity.owningKey, issuer, notAfter, notBefore, serial, caName)
 
         val certFactory = CertificateFactory.getInstance("X.509")
         val certificateConverter = JcaX509CertificateConverter().setProvider("BC")
@@ -96,8 +100,8 @@ class InMemoryIdentityServiceTests {
         service.assertOwnership(identity, txIdentity)
     }
 
-    private fun buildCertificate(signingKey: KeyPair, issuer: X500Name, notAfter: Date, notBefore: Date, serial: BigInteger?, subject: X500Name):X509CertificateHolder {
-        val publicKeyInfo = SubjectPublicKeyInfo(CompositeKey.ALGORITHM_IDENTIFIER, signingKey.public.encoded)
+    private fun buildCertificate(signingKey: KeyPair, issuerKey: PublicKey, issuer: X500Name, notAfter: Date, notBefore: Date, serial: BigInteger?, subject: X500Name):X509CertificateHolder {
+        val publicKeyInfo = SubjectPublicKeyInfo(CompositeProvider.EDDSA_ALG_IDENTIFIER, issuerKey.encoded)
         val certBuilder = X509v3CertificateBuilder(issuer, serial, notBefore, notAfter, subject, publicKeyInfo)
         val signer = Signer(signingKey)
         return certBuilder.build(signer)
@@ -105,7 +109,7 @@ class InMemoryIdentityServiceTests {
 
     class Signer(val identityKey: KeyPair): ContentSigner {
         private val stream = ByteArrayOutputStream()
-        override fun getAlgorithmIdentifier(): AlgorithmIdentifier = CompositeKey.ALGORITHM_IDENTIFIER
+        override fun getAlgorithmIdentifier(): AlgorithmIdentifier = CompositeProvider.EDDSA_ALG_IDENTIFIER
         override fun getOutputStream(): OutputStream = stream
         override fun getSignature(): ByteArray {
             val engine = EdDSAEngine()

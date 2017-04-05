@@ -10,9 +10,7 @@ import net.corda.core.serialization.SingletonSerializeAsToken
 import net.corda.core.utilities.loggerFor
 import net.corda.core.utilities.trace
 import java.security.PublicKey
-import java.security.cert.CertPath
-import java.security.cert.Certificate
-import java.security.cert.X509Certificate
+import java.security.cert.*
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import javax.annotation.concurrent.ThreadSafe
@@ -52,10 +50,13 @@ class InMemoryIdentityService() : SingletonSerializeAsToken(), IdentityService {
         throw UnsupportedOperationException("not implemented")
     }
 
+    @Throws(CertificateExpiredException::class, CertificateNotYetValidException::class)
     override fun registerPath(party: Party, anonymousParty: AnonymousParty, path: CertPath) {
         var previousCertificate: X509Certificate? = null
         for (cert in path.certificates) {
             if (cert is X509Certificate) {
+                cert.checkValidity()
+                require(cert.publicKey != null) { "Certificate must be signed" }
                 if (previousCertificate == null) {
                     val expectedParty = cert.subjectX500Principal.toString()
                     require(expectedParty == party.name) { "First certificate subject must be the well known identity. Expected ${expectedParty} found ${party.name}" }
