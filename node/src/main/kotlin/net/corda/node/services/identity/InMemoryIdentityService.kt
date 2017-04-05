@@ -2,18 +2,15 @@ package net.corda.node.services.identity
 
 import net.corda.core.contracts.PartyAndReference
 import net.corda.core.crypto.AnonymousParty
-import net.corda.core.crypto.EdDSAKeyFactory
 import net.corda.core.crypto.Party
-import net.corda.core.crypto.toStringShort
+import net.corda.core.crypto.X509Utilities
 import net.corda.core.node.services.IdentityService
 import net.corda.core.serialization.SingletonSerializeAsToken
 import net.corda.core.utilities.loggerFor
 import net.corda.core.utilities.trace
 import org.bouncycastle.asn1.x500.X500Name
-import org.bouncycastle.asn1.x509.SubjectKeyIdentifier
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.path.CertPath
-import sun.security.x509.SubjectKeyIdentifierExtension
 import java.security.PublicKey
 import java.security.cert.CertificateExpiredException
 import java.security.cert.CertificateNotYetValidException
@@ -67,7 +64,8 @@ class InMemoryIdentityService() : SingletonSerializeAsToken(), IdentityService {
                 require(cert.subject == X500Name(party.name)) { "First certificate subject must be the well known identity. Expected ${cert.subject} found ${party.name}" }
             } else {
                 require(cert.issuer == previousCertificate.subject)
-                // FIXME: require(cert.isSignatureValid(previousCertificate.subjectPublicKeyInfo))
+                X509Utilities
+                require(cert.isSignatureValid(previousCertificate.subjectPublicKeyInfo))
             }
             previousCertificate = cert
         }
