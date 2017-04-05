@@ -8,15 +8,12 @@ import net.corda.testing.ALICE_PUBKEY
 import net.corda.testing.BOB
 import net.corda.testing.BOB_PUBKEY
 import net.i2p.crypto.eddsa.EdDSAEngine
-import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
-import org.bouncycastle.asn1.x509.X509Extensions
 import org.bouncycastle.cert.X509CertificateHolder
-import org.bouncycastle.cert.X509ExtensionUtils
 import org.bouncycastle.cert.X509v3CertificateBuilder
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.cert.path.CertPath
 import org.bouncycastle.operator.ContentSigner
 import org.junit.Test
 import java.io.ByteArrayOutputStream
@@ -25,9 +22,6 @@ import java.math.BigInteger
 import java.security.KeyPair
 import java.security.PublicKey
 import java.security.Security
-import java.security.cert.CertPath
-import java.security.cert.CertificateFactory
-import java.security.cert.X509Extension
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -92,10 +86,7 @@ class InMemoryIdentityServiceTests {
         val txIdentity = AnonymousParty(generateKeyPair().public)
         val txCertificate = buildCertificate(identityKey, identity.owningKey, issuer, notAfter, notBefore, serial, caName)
 
-        val certFactory = CertificateFactory.getInstance("X.509")
-        val certificateConverter = JcaX509CertificateConverter().setProvider("BC")
-        val certList = listOf(identityCertificate, txCertificate).map { certificateConverter.getCertificate(it) }
-        val txCertPath: CertPath = certFactory.generateCertPath(certList)
+        val txCertPath: CertPath = CertPath(arrayOf(identityCertificate, txCertificate))
         service.registerPath(identity, txIdentity, txCertPath)
         service.assertOwnership(identity, txIdentity)
     }

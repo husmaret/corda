@@ -2,15 +2,21 @@ package net.corda.node.services.identity
 
 import net.corda.core.contracts.PartyAndReference
 import net.corda.core.crypto.AnonymousParty
-import net.corda.core.crypto.CompositeKey
+import net.corda.core.crypto.EdDSAKeyFactory
 import net.corda.core.crypto.Party
 import net.corda.core.crypto.toStringShort
 import net.corda.core.node.services.IdentityService
 import net.corda.core.serialization.SingletonSerializeAsToken
 import net.corda.core.utilities.loggerFor
 import net.corda.core.utilities.trace
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x509.SubjectKeyIdentifier
+import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.path.CertPath
+import sun.security.x509.SubjectKeyIdentifierExtension
 import java.security.PublicKey
-import java.security.cert.*
+import java.security.cert.CertificateExpiredException
+import java.security.cert.CertificateNotYetValidException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import javax.annotation.concurrent.ThreadSafe
@@ -52,26 +58,21 @@ class InMemoryIdentityService() : SingletonSerializeAsToken(), IdentityService {
 
     @Throws(CertificateExpiredException::class, CertificateNotYetValidException::class)
     override fun registerPath(party: Party, anonymousParty: AnonymousParty, path: CertPath) {
-        var previousCertificate: X509Certificate? = null
+        val now = Date()
+        var previousCertificate: X509CertificateHolder? = null
         for (cert in path.certificates) {
-            if (cert is X509Certificate) {
-                cert.checkValidity()
-                require(cert.publicKey != null) { "Certificate must be signed" }
-                if (previousCertificate == null) {
-                    val expectedParty = cert.subjectX500Principal.toString()
-                    require(expectedParty == party.name) { "First certificate subject must be the well known identity. Expected ${expectedParty} found ${party.name}" }
-                } else {
-                    require(cert.issuerX500Principal == previousCertificate.subjectX500Principal)
-                    cert.verify(previousCertificate.publicKey)
-                }
-                previousCertificate = cert
+            require(cert.subjectPublicKeyInfo != null) { "Certificate must include a public key" }
+            require(cert.isValidOn(now)) { "Certificate must be valid at the current time" }
+            if (previousCertificate == null) {
+                require(cert.subject == X500Name(party.name)) { "First certificate subject must be the well known identity. Expected ${cert.subject} found ${party.name}" }
             } else {
-                throw IllegalArgumentException("Found non-X509 certificate in certificate path.")
+                require(cert.issuer == previousCertificate.subject)
+                // FIXME: require(cert.isSignatureValid(previousCertificate.subjectPublicKeyInfo))
             }
+            previousCertificate = cert
         }
-        val expectedPartyKey = previousCertificate?.publicKey
-        require(expectedPartyKey is CompositeKey
-                && expectedPartyKey == anonymousParty.owningKey) { "Last certificate's subject must be anonymous party. Expected ${expectedPartyKey} found ${anonymousParty.owningKey.toStringShort()}" }
+        val expectedPartyKey = previousCertificate?.subjectPublicKeyInfo?.publicKeyData
+        require(Arrays.equals(expectedPartyKey?.bytes, anonymousParty.owningKey.encoded)) { "Last certificate's subject must be anonymous party." }
 
         partyToPath[anonymousParty] == path
     }
