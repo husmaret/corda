@@ -28,15 +28,15 @@ val DUMMY_MAP: Party get() = Party("CN=Network Map Service,O=R3,OU=corda,L=Londo
 
 val DUMMY_BANK_A_KEY: KeyPair by lazy { entropyToKeyPair(BigInteger.valueOf(40)) }
 /** Dummy bank identity for tests and simulations */
-val DUMMY_BANK_A: Party get() = Party("CN=Bank A,O=R3,OU=corda,L=London,C=UK", DUMMY_BANK_A_KEY.public)
+val DUMMY_BANK_A: Party get() = Party("CN=Bank A,O=Bank A,L=London,C=UK", DUMMY_BANK_A_KEY.public)
 
 val DUMMY_BANK_B_KEY: KeyPair by lazy { entropyToKeyPair(BigInteger.valueOf(50)) }
 /** Dummy bank identity for tests and simulations */
-val DUMMY_BANK_B: Party get() = Party("CN=Bank B,O=R3,OU=corda,L=New York,C=USA", DUMMY_BANK_B_KEY.public)
+val DUMMY_BANK_B: Party get() = Party("CN=Bank B,O=Bank B,L=New York,C=USA", DUMMY_BANK_B_KEY.public)
 
 val DUMMY_BANK_C_KEY: KeyPair by lazy { entropyToKeyPair(BigInteger.valueOf(60)) }
 /** Dummy bank identity for tests and simulations */
-val DUMMY_BANK_C: Party get() = Party("CN=Bank C,O=R3,OU=corda,L=Tokyo,C=Japan", DUMMY_BANK_C_KEY.public)
+val DUMMY_BANK_C: Party get() = Party("CN=Bank C,O=Bank C,L=Tokyo,C=Japan", DUMMY_BANK_C_KEY.public)
 
 
 

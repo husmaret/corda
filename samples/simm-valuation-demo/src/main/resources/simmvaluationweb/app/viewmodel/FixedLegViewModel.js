@@ -1,7 +1,7 @@
 "use strict";
 var FixedLegViewModel = (function () {
     function FixedLegViewModel() {
-        this.fixedRatePayer = "CN=Bank A,O=R3,OU=corda,L=London,C=UK";
+        this.fixedRatePayer = "CN=Bank A,O=Bank A,L=London,C=UK";
         this.notional = {
             quantity: 2500000000
         };
