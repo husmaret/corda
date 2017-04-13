@@ -24,6 +24,7 @@ import net.corda.node.services.network.NetworkMapService.Companion.SUBSCRIPTION_
 import net.corda.node.services.network.NodeRegistration
 import net.corda.core.utilities.ALICE
 import net.corda.core.utilities.BOB
+import net.corda.core.utilities.CHARLIE
 import net.corda.node.utilities.AddOrRemove
 import net.corda.node.utilities.AddOrRemove.ADD
 import net.corda.node.utilities.AddOrRemove.REMOVE
@@ -144,7 +145,7 @@ abstract class AbstractNetworkMapServiceTest<out S : AbstractNetworkMapService> 
         val updates = alice.subscribe()
         val bob = addNewNodeToNetworkMap(BOB.name)
         alice.unsubscribe()
-        addNewNodeToNetworkMap("Charlie")
+        addNewNodeToNetworkMap(CHARLIE.name)
         swizzle()
         assertThat(updates.map { it.wireReg.verified().toChanged() }).containsOnly(Added(bob.info))
     }
