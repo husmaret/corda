@@ -12,6 +12,8 @@ composite key signatures. This will form the underlying basis of future work to 
 formats to enable interoperability with other systems, as well as enabling the use of composite signatures on X.509
 certificates to prove association between transaction keys and identity keys.
 
+We have modified Corda's RPC API so that starting a flow no longer automatically enables progress-tracking. So developers no longer need to mark an unwanted flow progress tracker as "not used" in order to avoid a memory leak.
+
 Milestone 10
 ------------
 
